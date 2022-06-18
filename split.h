@@ -1,16 +1,16 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <regex>
 
 inline std::vector<std::wstring> split(const std::wstring &s, const std::wstring &delimeter) {
-    size_t startPos = 0, pos = 0;
-    std::wstring token;
+    size_t start = 0, end = s.find(delimeter);
     std::vector<std::wstring> result;
-    while((pos = s.find(delimeter)) != std::string::npos) {
-        token = s.substr(startPos, pos);
-        result.push_back(token);
-        startPos = pos + delimeter.length();
+    while (end != std::string::npos) {
+        result.push_back(s.substr(start, end - start));
+        start = end + delimeter.length();
+        end = s.find(delimeter, start);
     }
-    result.push_back(s.substr(0, s.length() - startPos));
+    result.push_back(s.substr(start, end));
     return result;
 }

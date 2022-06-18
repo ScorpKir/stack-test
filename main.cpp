@@ -2,5 +2,7 @@
 
 int main() {
     fillAccruals();
+    fillHomeAccruals();
     return 0;
 }
+
