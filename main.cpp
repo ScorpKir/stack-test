@@ -1,6 +1,6 @@
-#include <iostream>
+#include "fill.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    fillAccruals();
     return 0;
 }

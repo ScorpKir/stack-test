@@ -4,7 +4,14 @@
 #include <locale>
 #include <string>
 #include <cstdlib>
+#include <vector>
 #include "convert.h"
+#include "split.h"
+
+namespace {
+    const double STANDART = 301.26;
+    const double COUNT = 1.52;
+}
 
 void fillAccruals() {
     // создаём локаль для адекватного чтения и записи строк в кодировке utf8
@@ -23,11 +30,18 @@ void fillAccruals() {
 
     // считываем первую строку, добавляем столбец "Начислено" записываем с файл с начислениями заголовок таблицы
     std::getline(iwstream, tmpLine);
-    owstream << tmpLine << convertToWstring(";Начислено");
+    owstream << tmpLine << convertToWstring(";Начислено") << std::endl;
 
     // пока в нашем файле есть строки считываем их и производим следующие действия
     while(std::getline(iwstream, tmpLine)) {
-
+        // разбиваем строку на элементы из столбцов
+        std::vector<std::wstring> temp = split(tmpLine, L";");
+        // если тип начисления равен 1, то присваиваем нашему начислению стандартную величину, иначе присваиваем произведение счетчика на разность показаний
+        double accural = (temp[5] == L"1") ? STANDART : (stof(temp[7]) - stof(temp[6])) * COUNT;
+        // добавляем в конец к строке наше начисление
+        tmpLine += L';' + convertToWstring(std::to_string(accural));
+        // записываем в файл
+        owstream << tmpLine << std::endl;
     }
 
     // закрываем потоки ввода/вывода
