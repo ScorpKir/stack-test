@@ -3,6 +3,7 @@
 #include <vector>
 #include <regex>
 
+// функция разбиения строки через разделитель
 inline std::vector<std::wstring> split(const std::wstring &s, const std::wstring &delimeter) {
     size_t start = 0, end = s.find(delimeter);
     std::vector<std::wstring> result;

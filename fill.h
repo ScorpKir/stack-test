@@ -9,6 +9,7 @@
 #include <iostream>
 #include "convert.h"
 #include "split.h"
+#include "errors.h"
 
 namespace {
     const double STANDART = 301.26;
@@ -23,31 +24,37 @@ void fillAccruals() {
     std::wifstream iwstream(L"абоненты.csv");
     std::wofstream owstream(L"Начисления_абоненты.csv");
 
-    // присваиваем нашим потокам локаль для чтения/записи в utf8
-    iwstream.imbue(utf8_locale);
-    owstream.imbue(utf8_locale);
+    // если файл существует и открылся, то выполняем нашу функцию
+    if (iwstream.is_open()) {
+        // присваиваем нашим потокам локаль для чтения/записи в utf8
+        iwstream.imbue(utf8_locale);
+        owstream.imbue(utf8_locale);
 
-    // в эту строку мы будем считывать строки из файла
-    std::wstring tmpLine;
+        // в эту строку мы будем считывать строки из файла
+        std::wstring tmpLine;
 
-    // считываем первую строку, добавляем столбец "Начислено" записываем с файл с начислениями заголовок таблицы
-    std::getline(iwstream, tmpLine);
-    owstream << tmpLine << convertToWstring(";Начислено") << std::endl;
+        // считываем первую строку, добавляем столбец "Начислено" записываем с файл с начислениями заголовок таблицы
+        std::getline(iwstream, tmpLine);
+        owstream << tmpLine << convertToWstring(";Начислено") << std::endl;
 
-    // пока в нашем файле есть строки считываем их и производим следующие действия
-    while(std::getline(iwstream, tmpLine)) {
-        // разбиваем строку на элементы из столбцов
-        std::vector<std::wstring> splittedStr = split(tmpLine, L";");
-        // если тип начисления равен 1, то присваиваем нашему начислению стандартную величину, иначе присваиваем произведение счетчика на разность показаний
-        double accural = (splittedStr[5] == L"1") ? STANDART : (stod(splittedStr[7]) - stod(splittedStr[6])) * COUNT;
-        // добавляем в конец к строке наше начисление
-        tmpLine += L';' + convertToWstring(std::to_string(accural));
-        // записываем в файл
-        owstream << tmpLine << std::endl;
+        // пока в нашем файле есть строки считываем их и производим следующие действия
+        while(std::getline(iwstream, tmpLine)) {
+            // разбиваем строку на элементы из столбцов
+            std::vector<std::wstring> splittedStr = split(tmpLine, L";");
+            // если тип начисления равен 1, то присваиваем нашему начислению стандартную величину, иначе присваиваем произведение счетчика на разность показаний
+            double accural = (splittedStr[5] == L"1") ? STANDART : (stod(splittedStr[7]) - stod(splittedStr[6])) * COUNT;
+            // добавляем в конец к строке наше начисление
+            tmpLine += L';' + convertToWstring(std::to_string(accural));
+            // записываем в файл
+            owstream << tmpLine << std::endl;
+        }
+
+        // закрываем потоки ввода/вывода
+        iwstream.close();
+        owstream.close();
     }
-
-    // закрываем потоки ввода/вывода
-    iwstream.close();
+    // иначе выбрасываем ошибку о том, что файл не был найден
+    error("File \"абоненты.csv\" not found!");
     owstream.close();
 }
 
@@ -59,24 +66,36 @@ void fillHomeAccruals() {
     std::wifstream iwstream(L"Начисления_абоненты.csv");
     std::wofstream owstream(L"Начисления_дома.csv");
 
-    // присваиваем нашим потокам локаль для чтения/записи в utf8
-    iwstream.imbue(utf8_locale);
-    owstream.imbue(utf8_locale);
+    if (iwstream.is_open()) {
+        // присваиваем нашим потокам локаль для чтения/записи в utf8
+        iwstream.imbue(utf8_locale);
+        owstream.imbue(utf8_locale);
 
-    // в эту строку мы будем считывать строки из файла
-    std::wstring tmpLine;
-    std::getline(iwstream, tmpLine);
-    owstream << L"№ строки;Улица;№ дома; Начислено" << std::endl;
-    std::map<std::wstring, std::map<std::wstring, double>> homeSum;
-    int strNumber = 1;
-    while(std::getline(iwstream, tmpLine)) {
-        std::vector<std::wstring> splittedStr = split(tmpLine, L";");
-        homeSum[splittedStr[2]][splittedStr[3]] += stod(splittedStr[8]);
-    }
-    for (const auto &street : homeSum) {
-        for (const auto &home : street.second) {
-            owstream << convertToWstring(std::to_string(strNumber)) << L";" << street.first << L";" << home.first << L";" << home.second << std::endl;
-            strNumber++;
+        // в эту строку мы будем считывать строки из файла
+        std::wstring tmpLine;
+        // считываем первую строку из файла, она нам не нужна
+        std::getline(iwstream, tmpLine);
+        // заполняем заголовок таблицы
+        owstream << L"№ строки;Улица;№ дома; Начислено" << std::endl;
+        // мэп хранит в качестве ключа название улицы в качестве значения другой мэп, который содержит пары дом - сумма
+        std::map<std::wstring, std::map<std::wstring, double>> homeSum;
+        // переменная, чтобы заполнять номер строки
+        int strNumber = 1;
+        // пока считываются строки из файла добавляем информацию в map
+        while(std::getline(iwstream, tmpLine)) {
+            std::vector<std::wstring> splittedStr = split(tmpLine, L";");
+            homeSum[splittedStr[2]][splittedStr[3]] += stod(splittedStr[8]);
         }
+        // выводим информацию
+        for (const auto &street : homeSum) {
+            for (const auto &home : street.second) {
+                owstream << convertToWstring(std::to_string(strNumber)) << L";" << street.first << L";" << home.first << L";" << home.second << std::endl;
+                strNumber++;
+            }
+        }
+        iwstream.close();
+        owstream.close();
     }
+    owstream.close();
+    error("File \"Начисления_абоненты.csv\" not found!");
 }
